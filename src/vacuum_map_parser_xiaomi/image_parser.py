@@ -35,7 +35,8 @@ class XiaomiImageParser:
             XiaomiImageParser.MAP_OUTSIDE: palette.get_color(SupportedColor.MAP_OUTSIDE),
             XiaomiImageParser.MAP_WALL: palette.get_color(SupportedColor.MAP_WALL_V2),
             XiaomiImageParser.MAP_SCAN: palette.get_color(SupportedColor.SCAN),
-            XiaomiImageParser.MAP_NEW_DISCOVERED_AREA: palette.get_color(SupportedColor.NEW_DISCOVERED_AREA)}
+            XiaomiImageParser.MAP_NEW_DISCOVERED_AREA: palette.get_color(SupportedColor.NEW_DISCOVERED_AREA),
+            XiaomiImageParser.MAP_INSIDE: palette.get_color(SupportedColor.MAP_INSIDE)}
 
     def parse(
         self, map_data: bytes, width: int, height: int
