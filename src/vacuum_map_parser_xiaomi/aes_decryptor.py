@@ -79,11 +79,6 @@ def decrypt(encryptedMapContent: bytes, modelKey: str, did: str):
     encryptedBytes = bytes.fromhex(str(encryptedMapContent))
     decrypted_base64_bytes = aes_decrypt(encryptedBytes, decryptKey, iv)
     inflatedString = inflate(decrypted_base64_bytes)
-
-    ## Write decrypted map to file
-    #with open("0.decrypted.map.json", "w") as decryptedFile:
-    #    # Writing data to a file
-    #    decryptedFile.write(inflatedString)
     print ('MD5 Key:', md5Key)
     print ('AES Key:', decryptKey)
     return inflatedString
