@@ -5,9 +5,9 @@ Handles decryption, coordinate transformation, room detection, and visualization
 """
 
 import base64
+import json
 import logging
 import math
-import json
 import zlib
 from types import SimpleNamespace
 from typing import Any
@@ -21,25 +21,25 @@ from vacuum_map_parser_base.map_data import Area, ImageData, MapData, Path, Poin
 from vacuum_map_parser_base.map_data_parser import MapDataParser
 
 from .aes_decryptor import decrypt
-from .xiaomi_coordinate_transforms import Transformer
 from .image_parser import XiaomiImageParser
+from .xiaomi_coordinate_transforms import Transformer
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class XiaomiMapDataParser(MapDataParser):
     """Xiaomi map data parser.
-    
+
     Parses encrypted map data from Xiaomi vacuum cleaners, supporting both legacy
     protobuf-based maps and newer JSON-based maps. Handles coordinate transformations,
     room detection, virtual walls, no-go zones, and path tracking.
     """
 
     # Constants for map features
-    POSITION_UNKNOWN = 1100        # Marker for unknown/invalid positions
-    VIRTUALWALL_TYPE_WALL = 2      # Virtual wall barrier
-    VIRTUALWALL_TYPE_NO_MOP = 6    # No-mopping zone
-    VIRTUALWALL_TYPE_NO_GO = 3     # No-go zone (completely restricted)
+    POSITION_UNKNOWN = 1100  # Marker for unknown/invalid positions
+    VIRTUALWALL_TYPE_WALL = 2  # Virtual wall barrier
+    VIRTUALWALL_TYPE_NO_MOP = 6  # No-mopping zone
+    VIRTUALWALL_TYPE_NO_GO = 3  # No-go zone (completely restricted)
 
     def __init__(
         self,
@@ -47,10 +47,10 @@ class XiaomiMapDataParser(MapDataParser):
         sizes: Sizes,
         drawables: list[Drawable],
         image_config: ImageConfig,
-        texts: list[Text]
+        texts: list[Text],
     ):
         """Initialize the Xiaomi map data parser.
-        
+
         Args:
             palette: Color palette for rendering map elements
             sizes: Size configuration for map elements (icons, lines, etc.)
@@ -63,36 +63,33 @@ class XiaomiMapDataParser(MapDataParser):
 
     def unpack_map(self, raw_encoded: bytes, *args: Any, **kwargs: Any) -> bytes:
         """Decrypt raw encrypted map data from Xiaomi vacuum.
-        
+
         Args:
             raw_encoded: Encrypted map data bytes
             *args: Additional positional arguments (unused)
             **kwargs: Must contain 'model' and 'device_id' for decryption
-            
+
         Returns:
             Decrypted map data (may be JSON string or binary data)
         """
-        return decrypt(
-                raw_encoded,
-                kwargs['model'],
-                kwargs['device_id'])
+        return decrypt(raw_encoded, kwargs["model"], kwargs["device_id"])
 
     def parse(self, raw: Any, *args: Any, **kwargs: Any) -> MapData:
         """Parse decrypted map data into a MapData object.
-        
+
         Supports multiple input formats:
         - JSON string (newer Xiaomi models)
         - Dictionary (pre-parsed JSON)
         - None (returns None)
-        
+
         Args:
             raw: Decrypted map data in various formats
             *args: Additional positional arguments (unused)
             **kwargs: Additional keyword arguments (unused)
-            
+
         Returns:
             Parsed MapData object or None if input is None
-            
+
         Raises:
             ValueError: If JSON string is malformed
             TypeError: If input type is not supported
@@ -117,15 +114,15 @@ class XiaomiMapDataParser(MapDataParser):
     @staticmethod
     def _json_yaw_to_degrees(yaw: Any) -> float:
         """Convert Xiaomi JSON yaw values to degrees.
-        
+
         Xiaomi uses different angle formats across models/firmwares:
         - Centi-degrees: Large values like 2470 represent 24.70°
         - Radians: Values within [-2π, 2π]
         - Degrees: Values already in degree format
-        
+
         Args:
             yaw: Angle value in unknown format
-            
+
         Returns:
             Normalized angle in degrees [0, 180)
         """
@@ -149,14 +146,14 @@ class XiaomiMapDataParser(MapDataParser):
     @staticmethod
     def _room_number_to_grid_id(room_number: int) -> int:
         """Convert pixel-based room_number to Xiaomi grid_id.
-        
+
         Image parser uses room numbers 10-59 for rooms in the pixel data.
         Xiaomi's JSON format uses grid_ids starting from 3.
         This converts between the two numbering schemes.
-        
+
         Args:
             room_number: Room number from image parser (10-59)
-            
+
         Returns:
             Grid ID for Xiaomi JSON format (3+)
         """
@@ -164,16 +161,16 @@ class XiaomiMapDataParser(MapDataParser):
 
     def _normalize_json_map_pixels(self, raw: bytes) -> bytes:
         """Normalize JSON-based map pixels to match image parser expectations.
-        
+
         The JSON format uses different pixel values than the image parser expects:
         - JSON: 0=unknown, 1/2=free space, 3-63=rooms, >63=walls
         - Parser: 0=outside, 127=inside, 10-59=rooms, 128=wall
-        
+
         This method converts from JSON format to parser format.
-        
+
         Args:
             raw: Raw pixel data from JSON map
-            
+
         Returns:
             Normalized pixel data compatible with XiaomiImageParser
         """
@@ -203,13 +200,13 @@ class XiaomiMapDataParser(MapDataParser):
 
     def _parse_json_payload(self, payload: dict[str, Any]) -> MapData:
         """Parse decrypted JSON payload into a MapData object.
-        
+
         Processes JSON-format map data from newer Xiaomi vacuum models.
         Extracts map image, rooms, walls, zones, paths, and device positions.
-        
+
         Args:
             payload: Decrypted JSON payload as a dictionary
-            
+
         Returns:
             Complete MapData object with all map features
         """
@@ -247,7 +244,7 @@ class XiaomiMapDataParser(MapDataParser):
             sizeX=int(map_width),
             sizeY=int(map_height),
             resolution=float(map_resolution),  # Millimeters per pixel
-            minX=float(origin_x),              # World coordinate bounds
+            minX=float(origin_x),  # World coordinate bounds
             minY=float(origin_y),
             maxX=float(origin_x) + float(map_width) * float(map_resolution),
             maxY=float(origin_y) + float(map_height) * float(map_resolution),
@@ -255,15 +252,13 @@ class XiaomiMapDataParser(MapDataParser):
 
         # Initialize coordinate transformer for converting between map and image coordinates
         self.coord_transformer = Transformer(self.robot_map)
-        
+
         # Convert JSON pixel format to image parser format
         normalized_map = self._normalize_json_map_pixels(map_bytes)
 
         # ---- Parse image --------------------------------------------------------
         # Use the image parser to render the map and detect rooms
-        image, rooms_raw, cleaned_areas = self._image_parser.parse(
-            normalized_map, int(map_width), int(map_height)
-        )
+        image, rooms_raw, cleaned_areas = self._image_parser.parse(normalized_map, int(map_width), int(map_height))
 
         # Fall back to empty image if parsing failed
         if image is None:
@@ -272,8 +267,8 @@ class XiaomiMapDataParser(MapDataParser):
         # Create ImageData object with coordinate transformation function
         map_data.image = ImageData(
             int(map_width) * int(map_height),  # Total pixel count
-            0,                                  # Additional data offset (unused)
-            0,                                  # Additional data length (unused)
+            0,  # Additional data offset (unused)
+            0,  # Additional data length (unused)
             int(map_height),
             int(map_width),
             self._image_config,
@@ -291,7 +286,7 @@ class XiaomiMapDataParser(MapDataParser):
         # - room_id: varies (user-visible room identifier)
         grid_to_room: dict[int, int] = {}
         room_to_grid: dict[int, int] = {}
-        
+
         map_room_info = payload.get("map_room_info")
         if isinstance(map_room_info, list):
             for entry in map_room_info:
@@ -312,7 +307,7 @@ class XiaomiMapDataParser(MapDataParser):
             # Convert pixel room number to grid_id, then to room_id
             grid_id = self._room_number_to_grid_id(room_number)
             room_id = grid_to_room.get(grid_id, grid_id)  # Default to grid_id if no mapping
-            
+
             # Create Room object with bounding box in map coordinates
             # room is (min_x, min_y, max_x, max_y) in image coordinates
             rooms_out[room_id] = Room(
@@ -330,7 +325,7 @@ class XiaomiMapDataParser(MapDataParser):
             for r in room_attrs:
                 if not isinstance(r, dict):
                     continue
-                    
+
                 # Extract room identifier (varies by model/firmware)
                 rid = r.get("room_id") or r.get("grid_id") or r.get("id")
                 try:
@@ -344,7 +339,7 @@ class XiaomiMapDataParser(MapDataParser):
                 # - `map_room_info` may map grid_id <-> room_id
                 # Try multiple approaches to find the correct room
                 target_id: int | None = None
-                
+
                 # Try 1: Direct match
                 if rid_int in rooms_out:
                     target_id = rid_int
@@ -367,7 +362,7 @@ class XiaomiMapDataParser(MapDataParser):
                     rooms_out[target_id].pos_y = r.get("text_y", r.get("name_pos_y"))
 
         map_data.rooms = rooms_out
-        
+
         # Convert cleaned room numbers to room IDs
         # cleaned_areas contains pixel-based room numbers from the image parser
         cleaned_rooms_out = set()
@@ -403,7 +398,7 @@ class XiaomiMapDataParser(MapDataParser):
         # Track where the vacuum has traveled during cleaning
         paths = payload.get("paths")
         points_src = None
-        
+
         # Handle different path data formats
         if isinstance(paths, dict):
             points_src = paths.get("points")
@@ -411,28 +406,28 @@ class XiaomiMapDataParser(MapDataParser):
             points_src = paths
 
         if isinstance(points_src, list):
-            points = []          # All path points
-            points_mop = []      # Points where mopping was active
-            
+            points = []  # All path points
+            points_mop = []  # Points where mopping was active
+
             for p in points_src:
                 if not isinstance(p, dict):
                     continue
-                    
+
                 pt = Point(
                     x=p.get("x", 0),
                     y=p.get("y", 0),
                 )
-                
+
                 # Include heading angle if available
                 if "yaw" in p:
                     pt.a = self._json_yaw_to_degrees(p.get("yaw"))
-                    
+
                 # Separate tracking for mopping path
                 if "sweep_mop_mode" in p:
                     points_mop.append(pt)
-                    
+
                 points.append(pt)
-                
+
             # Create path objects if we have points
             if points:
                 map_data.path = Path(len(points), 1, 0, [points])
@@ -441,15 +436,15 @@ class XiaomiMapDataParser(MapDataParser):
 
         # ---- Virtual walls and restricted zones ---------------------------------
         # User-defined barriers and restricted areas
-        walls = []       # Virtual walls (line barriers)
-        no_go = []       # No-go zones (vacuum won't enter)
-        no_mop = []      # No-mopping zones (vacuum can sweep but not mop)
+        walls = []  # Virtual walls (line barriers)
+        no_go = []  # No-go zones (vacuum won't enter)
+        no_mop = []  # No-mopping zones (vacuum can sweep but not mop)
 
         # fb_regions = "forbidden regions"
         for area in payload.get("fb_regions", []) or []:
             if not isinstance(area, dict):
                 continue
-                
+
             pts = area.get("points")
             if not pts or len(pts) != 4:
                 continue
@@ -464,12 +459,10 @@ class XiaomiMapDataParser(MapDataParser):
                 walls.append(Wall(p[0].x, p[0].y, p[2].x, p[2].y))
             elif atype == "no_go":
                 # No-go zones are rectangular areas defined by 4 corners
-                no_go.append(Area(p[0].x, p[0].y, p[1].x, p[1].y,
-                                p[2].x, p[2].y, p[3].x, p[3].y))
+                no_go.append(Area(p[0].x, p[0].y, p[1].x, p[1].y, p[2].x, p[2].y, p[3].x, p[3].y))
             elif atype == "no_mop":
                 # No-mopping zones use the same format as no-go zones
-                no_mop.append(Area(p[0].x, p[0].y, p[1].x, p[1].y,
-                                p[2].x, p[2].y, p[3].x, p[3].y))
+                no_mop.append(Area(p[0].x, p[0].y, p[1].x, p[1].y, p[2].x, p[2].y, p[3].x, p[3].y))
 
         map_data.walls = walls
         map_data.no_go_areas = no_go
