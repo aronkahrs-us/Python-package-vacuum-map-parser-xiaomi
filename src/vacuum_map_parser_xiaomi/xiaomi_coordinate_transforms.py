@@ -22,7 +22,7 @@ class Transformer:  # pylint: disable=E1101
         )
 
     def image_to_map_x(self, x: int) -> float:
-        return x / self.to_image_multiplier.x + self.map_head.minX
+        return float(x / self.to_image_multiplier.x + self.map_head.minX)
 
     def image_to_map_y(self, y: int) -> float:
-        return y / self.to_image_multiplier.y + self.map_head.minY
+        return float(y / self.to_image_multiplier.y + self.map_head.minY)

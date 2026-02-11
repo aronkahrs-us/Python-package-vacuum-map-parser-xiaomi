@@ -60,8 +60,10 @@ class XiaomiMapDataParser(MapDataParser):
         """
         super().__init__(palette, sizes, drawables, image_config, texts)
         self._image_parser = XiaomiImageParser(palette, image_config, drawables)
+        self.robot_map: Any = None
+        self.coord_transformer: Any = None
 
-    def unpack_map(self, raw_encoded: bytes, *args: Any, **kwargs: Any) -> bytes:
+    def unpack_map(self, raw_encoded: bytes, *args: Any, **kwargs: Any) -> str:  # type: ignore[override]
         """Decrypt raw encrypted map data from Xiaomi vacuum.
 
         Args:
@@ -70,7 +72,7 @@ class XiaomiMapDataParser(MapDataParser):
             **kwargs: Must contain 'model' and 'device_id' for decryption
 
         Returns:
-            Decrypted map data (may be JSON string or binary data)
+            Decrypted map data (JSON string)
         """
         return decrypt(raw_encoded, kwargs["model"], kwargs["device_id"])
 
@@ -80,7 +82,6 @@ class XiaomiMapDataParser(MapDataParser):
         Supports multiple input formats:
         - JSON string (newer Xiaomi models)
         - Dictionary (pre-parsed JSON)
-        - None (returns None)
 
         Args:
             raw: Decrypted map data in various formats
@@ -88,14 +89,14 @@ class XiaomiMapDataParser(MapDataParser):
             **kwargs: Additional keyword arguments (unused)
 
         Returns:
-            Parsed MapData object or None if input is None
+            Parsed MapData object
 
         Raises:
-            ValueError: If JSON string is malformed
+            ValueError: If JSON string is malformed or input is None
             TypeError: If input type is not supported
         """
         if raw is None:
-            return None
+            raise ValueError("Map data cannot be None")
 
         # Decryptor returns a JSON string for newer Xiaomi vacuums
         if isinstance(raw, str):
@@ -293,8 +294,12 @@ class XiaomiMapDataParser(MapDataParser):
                 if not isinstance(entry, dict):
                     continue
                 try:
-                    grid_id = int(entry.get("grid_id"))
-                    room_id = int(entry.get("room_id"))
+                    grid_id_val = entry.get("grid_id")
+                    room_id_val = entry.get("room_id")
+                    if grid_id_val is None or room_id_val is None:
+                        continue
+                    grid_id = int(grid_id_val)
+                    room_id = int(room_id_val)
                 except (TypeError, ValueError):
                     continue
                 grid_to_room[grid_id] = room_id
@@ -328,6 +333,8 @@ class XiaomiMapDataParser(MapDataParser):
 
                 # Extract room identifier (varies by model/firmware)
                 rid = r.get("room_id") or r.get("grid_id") or r.get("id")
+                if rid is None:
+                    continue
                 try:
                     rid_int = int(rid)
                 except (TypeError, ValueError):

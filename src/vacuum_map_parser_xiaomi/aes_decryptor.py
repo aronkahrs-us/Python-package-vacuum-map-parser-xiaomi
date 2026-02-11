@@ -11,7 +11,7 @@ from Crypto.Util.Padding import pad, unpad
 isEncryptKeyTypeHex = True
 
 
-def aes_encrypt(data: str, key: str, iv: bytes):
+def aes_encrypt(data: bytes, key: bytes, iv: bytes) -> str:
     """
     Encrypts a string using AES encryption in CBC mode.
     """
@@ -20,7 +20,7 @@ def aes_encrypt(data: str, key: str, iv: bytes):
     return encrypted.hex().upper()
 
 
-def inflate(data: Union[bytes, bytearray, memoryview, str]):
+def inflate(data: Union[bytes, bytearray, memoryview, str]) -> str:
     if isinstance(data, str):
         # If we were accidentally passed a hex string, interpret it as such.
         # Otherwise, preserve raw byte values via latin1.
@@ -45,28 +45,28 @@ def aes_decrypt(data: bytes, key: bytes, iv: bytes) -> bytes:
         raise RuntimeError("AES decrypt failed (check modelKey/did/key derivation and input map data)") from e
 
 
-def md5_hash(data: bytes):
+def md5_hash(data: bytes) -> str:
     """
     Returns the MD5 hash of the given data.
     """
     return hashlib.md5(data).hexdigest()
 
 
-def base64Encoding(input):
-    dataBase64 = base64.b64encode(input)
+def base64Encoding(data: bytes) -> str:
+    dataBase64 = base64.b64encode(data)
     dataBase64P = dataBase64.decode("UTF-8")
     return dataBase64P
 
 
-def base64_decode(input: bytes):
+def base64_decode(data: bytes) -> str:
     """
     Decodes a Base64 string to hexadecimal.
     """
-    decoded_bytes = base64.decodebytes(input)
+    decoded_bytes = base64.decodebytes(data)
     return decoded_bytes.hex()
 
 
-def decrypt(encryptedMapContent: bytes, modelKey: str, did: str):
+def decrypt(encryptedMapContent: bytes, modelKey: str, did: str) -> str:
 
     originalWork = modelKey + did
 
@@ -83,7 +83,7 @@ def decrypt(encryptedMapContent: bytes, modelKey: str, did: str):
     return inflatedString
 
 
-def gen_md5_key(modelKey: str, did: str):
+def gen_md5_key(modelKey: str, did: str) -> str:
     originalWork = modelKey + did
 
     iv = b"ABCDEF1234123412"  # iv as a byte array
