@@ -393,7 +393,7 @@ class XiaomiMapDataParser(MapDataParser):
 
         # ---- Robot vacuum position ----------------------------------------------
         # Current position and orientation of the vacuum
-        position = payload.get("position")
+        position = payload.get("position",0)
         if isinstance(position, dict):
             map_data.vacuum_position = Point(
                 x=position.get("x", 0),
