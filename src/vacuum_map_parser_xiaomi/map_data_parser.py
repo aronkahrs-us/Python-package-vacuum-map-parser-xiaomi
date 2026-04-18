@@ -447,11 +447,39 @@ class XiaomiMapDataParser(MapDataParser):
         no_go = []  # No-go zones (vacuum won't enter)
         no_mop = []  # No-mopping zones (vacuum can sweep but not mop)
 
+        # fb_attr values used in Dreame-based Xiaomi models (e.g. xiaomi.vacuum.ov81gl)
+        # 1 = no-mopping zone, 2 = no-go zone
+        _FB_ATTR_NO_GO = 2
+        _FB_ATTR_NO_MOP = 1
+
         # fb_regions = "forbidden regions"
+        # Supports two payload formats:
+        #
+        # Format A (generic/future): structured points + type string
+        #   {"points": [{"x": x1, "y": y1}, ...], "type": "no_go"|"no_mop"|"wall"}
+        #
+        # Format B (Dreame-based Xiaomi models, e.g. xiaomi.vacuum.ov81gl):
+        #   {"id": N, "fb_attr": 1|2, "fb_point": [x1, y1, x2, y2, x3, y3, x4, y4]}
+        #   where fb_attr: 1=no_go, 2=no_mop
         for area in payload.get("fb_regions", []) or []:
             if not isinstance(area, dict):
                 continue
 
+            # Format B: flat coordinate list in fb_point
+            fb_point = area.get("fb_point")
+            if fb_point is not None:
+                if not isinstance(fb_point, list) or len(fb_point) != 8:
+                    continue
+                x1, y1, x2, y2, x3, y3, x4, y4 = fb_point
+                fb_attr = area.get("fb_attr", _FB_ATTR_NO_GO)
+                region = Area(x1, y1, x2, y2, x3, y3, x4, y4)
+                if fb_attr == _FB_ATTR_NO_GO:
+                    no_go.append(region)
+                elif fb_attr == _FB_ATTR_NO_MOP:
+                    no_mop.append(region)
+                continue
+
+            # Format A: structured points list
             pts = area.get("points")
             if not pts or len(pts) != 4:
                 continue
@@ -470,6 +498,18 @@ class XiaomiMapDataParser(MapDataParser):
             elif atype == "no_mop":
                 # No-mopping zones use the same format as no-go zones
                 no_mop.append(Area(p[0].x, p[0].y, p[1].x, p[1].y, p[2].x, p[2].y, p[3].x, p[3].y))
+
+        # fb_walls = virtual wall lines (separate from fb_regions in Dreame-based models)
+        # Format: {"id": N, "wall_points": [x1, y1, x2, y2]}
+        for wall in payload.get("fb_walls", []) or []:
+            if not isinstance(wall, dict):
+                continue
+            wall_pts = wall.get("wall_points")
+            if not isinstance(wall_pts, list) or len(wall_pts) != 4:
+                _LOGGER.debug("fb_walls entry has unexpected wall_points: %s", wall_pts)
+                continue
+            x1, y1, x2, y2 = wall_pts
+            walls.append(Wall(x1, y1, x2, y2))
 
         map_data.walls = walls
         map_data.no_go_areas = no_go
