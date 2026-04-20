@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "vacuum-map-parser-xiaomi"
 # The version is set by GH action on release
-version = "0.0.0"
+version = "0.1.4"
 license = "Apache-2.0"
 description = "Functionalities for Xiaomi vacuum map parsing"
 readme = "README.md"
