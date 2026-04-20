@@ -448,8 +448,10 @@ class XiaomiMapDataParser(MapDataParser):
         no_mop = []  # No-mopping zones (vacuum can sweep but not mop)
 
         # fb_attr values used in Dreame-based Xiaomi models (e.g. xiaomi.vacuum.ov81gl)
-        # 1 = no-mopping zone, 2 = no-go zone
-        _FB_ATTR_NO_GO = 2
+        # Verified against real device data:
+        #   0 = no-go zone
+        #   1 = no-mopping zone
+        _FB_ATTR_NO_GO = 0
         _FB_ATTR_NO_MOP = 1
 
         # fb_regions = "forbidden regions"
@@ -459,8 +461,8 @@ class XiaomiMapDataParser(MapDataParser):
         #   {"points": [{"x": x1, "y": y1}, ...], "type": "no_go"|"no_mop"|"wall"}
         #
         # Format B (Dreame-based Xiaomi models, e.g. xiaomi.vacuum.ov81gl):
-        #   {"id": N, "fb_attr": 1|2, "fb_point": [x1, y1, x2, y2, x3, y3, x4, y4]}
-        #   where fb_attr: 1=no_go, 2=no_mop
+        #   {"id": N, "fb_attr": 0|1, "fb_point": [x1, y1, x2, y2, x3, y3, x4, y4]}
+        #   where fb_attr: 0=no_go, 1=no_mop
         for area in payload.get("fb_regions", []) or []:
             if not isinstance(area, dict):
                 continue
