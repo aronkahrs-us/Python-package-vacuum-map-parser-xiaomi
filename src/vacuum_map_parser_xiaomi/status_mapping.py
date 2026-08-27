@@ -19,7 +19,16 @@ class XiaomiVacuumStatusMapping:
 
 
 _NON_STANDARD_STATUS_PROP = [
-    (["xiaomi.vacuum.e101gb"], XiaomiVacuumStatusMapping(idle_at=(1, 2, 5, 6, 9, 11, 15, 18, 23)))
+    (["xiaomi.vacuum.e101gb"], XiaomiVacuumStatusMapping(idle_at=(1, 2, 5, 6, 9, 11, 15, 18, 23))),
+    # H50 keeps the firmware version at piid 1 and the status at piid 2.
+    # Idle values are the states in which the vacuum stays put: 1 Idle, 2 Charging,
+    # 3 BreakCharging, 5 Paused, 9 Charged, 11 Updating, 12 MultiTaskStationWorking,
+    # 14 StationWorking, 15 Error, 18 MappingPause, 22 StationAssistingCleaning,
+    # 23 StationAssistingCleaned.
+    (
+        ["xiaomi.vacuum.ov43gb"],
+        XiaomiVacuumStatusMapping(piid=2, idle_at=(1, 2, 3, 5, 9, 11, 12, 14, 15, 18, 22, 23)),
+    ),
 ]
 
 
