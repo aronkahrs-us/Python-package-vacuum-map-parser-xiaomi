@@ -54,6 +54,7 @@ parsed_map = parser.parse(unpacked_map)
 - xiaomi.vacuum.ov71gl
 - xiaomi.vacuum.ov31gl
 - xiaomi.vacuum.ov81gl
+- xiaomi.vacuum.ov51gl
 
 *If you got another vacuum to work, please tell us*
 
