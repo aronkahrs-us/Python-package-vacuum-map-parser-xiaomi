@@ -50,6 +50,7 @@ parsed_map = parser.parse(unpacked_map)
 ```
   
 ## Supported vacuums:
+- xiaomi.vacuum.b108gl
 - xiaomi.vacuum.e101gb
 - xiaomi.vacuum.ov71gl
 - xiaomi.vacuum.ov31gl
