@@ -2,6 +2,7 @@
 
 import base64
 import hashlib
+import json
 import zlib
 from typing import Union
 
@@ -67,6 +68,27 @@ def base64_decode(data: bytes) -> str:
 
 
 def decrypt(encryptedMapContent: bytes, modelKey: str, did: str) -> str:
+    """Decrypt a Xiaomi cloud map blob.
+
+    `encryptedMapContent` is the raw HTTP response body from the map-fetch
+    endpoint: a JSON envelope of the form
+    `{"version":2,"data":"<base64-encoded AES-CBC ciphertext>"}`.
+
+    `modelKey` is truncated to its last 16 characters before use: AES-128
+    needs exactly a 16-byte key, and the raw MIoT model string this is
+    normally called with (e.g. "xiaomi.vacuum.ov42gl", 20 characters) isn't
+    a valid key length on its own — this used to make every call raise
+    `ValueError: Incorrect AES key length` for every model this package
+    claims to support. Confirmed against the official Xiaomi Home Android
+    app's own map-decrypt code, which does the same truncation
+    (`Device.model.slice(-16)`) before deriving the key.
+    """
+    modelKey = modelKey[-16:]
+
+    envelope = json.loads(encryptedMapContent)
+    if envelope.get("version") != 2:
+        raise ValueError(f"unsupported map blob version: {envelope.get('version')!r}")
+    encryptedBytes = base64.b64decode(envelope["data"])
 
     originalWork = modelKey + did
 
@@ -77,13 +99,13 @@ def decrypt(encryptedMapContent: bytes, modelKey: str, did: str) -> str:
     md5Key = md5_hash(encKey2)
     decryptKey = bytes.fromhex(md5Key)
 
-    encryptedBytes = bytes.fromhex(str(encryptedMapContent))
-    decrypted_base64_bytes = aes_decrypt(encryptedBytes, decryptKey, iv)
-    inflatedString = inflate(decrypted_base64_bytes)
+    decrypted_bytes = aes_decrypt(encryptedBytes, decryptKey, iv)
+    inflatedString = inflate(decrypted_bytes)
     return inflatedString
 
 
 def gen_md5_key(modelKey: str, did: str) -> str:
+    modelKey = modelKey[-16:]
     originalWork = modelKey + did
 
     iv = b"ABCDEF1234123412"  # iv as a byte array
