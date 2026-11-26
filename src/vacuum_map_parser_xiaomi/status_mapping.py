@@ -30,6 +30,13 @@ _NON_STANDARD_STATUS_PROP = [
         ["xiaomi.vacuum.ov43gb", "xiaomi.vacuum.ov51gl"],
         XiaomiVacuumStatusMapping(piid=2, idle_at=(1, 2, 3, 5, 9, 11, 12, 14, 15, 18, 22, 23)),
     ),
+    # X20 Max (d109gl) also keeps the firmware version at piid 1 and the status at
+    # piid 2. Its status value list stops at 21 GoChargeBuildingMap, so it has the
+    # same idle values as above without 22 and 23.
+    (
+        ["xiaomi.vacuum.d109gl"],
+        XiaomiVacuumStatusMapping(piid=2, idle_at=(1, 2, 3, 5, 9, 11, 12, 14, 15, 18)),
+    ),
 ]
 
 
